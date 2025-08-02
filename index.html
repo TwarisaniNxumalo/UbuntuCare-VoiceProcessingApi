@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audio Upload</title>
+</head>
+<body>
+  <h2>Upload Audio File</h2>
+
+  <input type="file" id="audioFile" accept="audio/*">
+  <button onclick="uploadAudio()">Upload</button>
+
+<p id="responseText"></p>
+
+
+ <script>
+  async function uploadAudio() {
+    const input = document.getElementById('audioFile');
+    const file = input.files[0];
+
+    if (!file) {
+      alert("Please select a file.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const response = await fetch("http://127.0.0.1:5000/api/audio/upload", {
+        method: "POST",
+        body: formData
+      });
+
+      const result = await response.json();
+      const responseElement = document.getElementById("responseText");
+
+      if (response.ok && result.success) {
+        let html = `
+          <strong>Upload Successful</strong><br>
+          <b>File Path:</b> ${result.file_path}<br>
+          <b>Prediction:</b> ${result.prediction}<br>
+          <b>Confidence:</b> ${(result.confidence * 100).toFixed(2)}%<br>
+          <b>Probabilities:</b><br>
+          <ul>
+        `;
+
+        for (const [label, prob] of Object.entries(result.probabilities)) {
+          html += `<li>${label}: ${(prob * 100).toFixed(2)}%</li>`;
+        }
+
+        html += `</ul>`;
+        responseElement.innerHTML = html;
+      } else {
+        responseElement.innerText = "Upload failed: " + (result.error || "Unknown error");
+      }
+
+    } catch (error) {
+      console.error("Error uploading:", error);
+      document.getElementById("responseText").innerText = "Upload error: " + error.message;
+    }
+  }
+</script>
+
+
+</body>
+</html>

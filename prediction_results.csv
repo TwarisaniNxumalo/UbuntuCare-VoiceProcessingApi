@@ -1,0 +1,7 @@
+file,prediction,confidence,tb_prob,covid_prob,normal_prob
+Whooping Cough in an Adult  NEJM.wav,TB,0.5004539,0.5004539,0.4995461,0
+Whooping Cough in an Adult  NEJM 1.wav,TB,0.5004539,0.5004539,0.4995461,0
+Whooping Cough in an Adult  NEJM 2.wav,TB,0.5004539,0.5004539,0.4995461,0
+Whooping Cough in an Adult  NEJM 3.wav,TB,0.5004539,0.5004539,0.4995461,0
+Whooping Cough in an Adult  NEJM 4.wav,TB,0.5004539,0.5004539,0.4995461,0
+Whooping Cough in an Adult  NEJM 5.wav,TB,0.5004539,0.5004539,0.4995461,0
