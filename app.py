@@ -4,11 +4,12 @@ import tempfile
 from werkzeug.utils import secure_filename
 import numpy as np
 
-# Option 1: Use the lightweight prediction-only class (RECOMMENDED for API)
-from TBCoughDetectorPrediction import TBCoughDetectorPrediction
-
-# Option 2: Use the full training class (if you need training capabilities)
-# from TBCoughDetector import TBCoughDetector
+# Import your TB detection class
+try:
+    from TBCoughDetectorPrediction import TBCoughDetectorPrediction
+except ImportError:
+    print("Warning: TBCoughDetectorPrediction not found")
+    TBCoughDetectorPrediction = None
 
 app = Flask(__name__)
 
@@ -30,15 +31,14 @@ detector = None
 
 def get_detector():
     global detector
-    if detector is None:
-        # Using the lightweight prediction class
+    if detector is None and TBCoughDetectorPrediction is not None:
         detector = TBCoughDetectorPrediction()
         
-        # Load the model
+        # Try to load the model
         if detector.load_model('tb_cough_detector'):
             print("✅ Model loaded successfully")
         else:
-            print("❌ Failed to load model")
+            print("❌ Failed to load model - model files may not be present")
             return None
     return detector
 
@@ -51,7 +51,8 @@ def health_check():
         'status': 'healthy',
         'model_status': model_status,
         'upload_folder': UPLOAD_FOLDER,
-        'supported_formats': list(ALLOWED_EXTENSIONS)
+        'supported_formats': list(ALLOWED_EXTENSIONS),
+        'environment': 'Azure App Service'
     }), 200
 
 @app.route('/api/audio/upload', methods=['POST'])
@@ -78,20 +79,15 @@ def upload_audio():
         if detector_instance is None or detector_instance.model is None:
             return jsonify({'error': 'Model not available. Please check if model files exist.'}), 500
 
-      
         filename = secure_filename(file.filename)
         file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
         
-       
+        # Save file
         file.save(file_path)
         print(f"📁 File saved to: {file_path}")
         
-   
         try:
             result = detector_instance.predict(file_path)
-            
-            
-           
             
             return jsonify({
                 'success': True,
@@ -144,101 +140,19 @@ def predict_from_path():
     except Exception as e:
         return jsonify({'error': f'Prediction failed: {str(e)}'}), 500
 
-@app.route('/api/model/info', methods=['GET'])
-def model_info():
-    """Get information about the loaded model"""
-    detector_instance = get_detector()
-    
-    if detector_instance is None:
-        return jsonify({'error': 'Detector not initialized'}), 500
-    
-    info = {
-        'model_loaded': detector_instance.model is not None,
-        'sample_rate': detector_instance.sample_rate,
-        'duration': detector_instance.duration,
-        'n_mels': detector_instance.n_mels,
-        'n_mfcc': detector_instance.n_mfcc,
-    }
-    
-    if detector_instance.model is not None:
-        info['model_summary'] = {
-            'input_shape': detector_instance.model.input_shape,
-            'output_shape': detector_instance.model.output_shape,
-            'total_params': detector_instance.model.count_params()
-        }
-        
-        if hasattr(detector_instance, 'label_encoder') and detector_instance.label_encoder is not None:
-            info['classes'] = detector_instance.label_encoder.classes_.tolist()
-    
-    return jsonify(info), 200
-
-@app.route('/api/batch/predict', methods=['POST'])
-def batch_predict():
-    """Predict multiple files at once"""
-    data = request.get_json()
-    
-    if not data or 'file_paths' not in data:
-        return jsonify({'error': 'file_paths array is required in JSON body'}), 400
-    
-    file_paths = data['file_paths']
-    
-    if not isinstance(file_paths, list):
-        return jsonify({'error': 'file_paths must be an array'}), 400
-    
-    detector_instance = get_detector()
-    if detector_instance is None or detector_instance.model is None:
-        return jsonify({'error': 'Model not available'}), 500
-    
-    results = []
-    errors = []
-    
-    for file_path in file_paths:
-        if not os.path.exists(file_path):
-            errors.append(f"File not found: {file_path}")
-            continue
-        
-        try:
-            result = detector_instance.predict(file_path)
-            results.append({
-                'file_path': file_path,
-                'prediction': result['predicted_class'],
-                'confidence': round(float(result['confidence']), 4),
-                'probabilities': {k: round(float(v), 4) for k, v in result['probabilities'].items()}
-            })
-        except Exception as e:
-            errors.append(f"Error predicting {file_path}: {str(e)}")
-    
-    return jsonify({
-        'success': True,
-        'results': results,
-        'errors': errors,
-        'total_files': len(file_paths),
-        'successful_predictions': len(results),
-        'failed_predictions': len(errors)
-    }), 200
-
 @app.route("/", methods=["GET"])
 def root():
     return jsonify({
         "message": "TB Cough Detection API",
-        "version": "1.0.1",
-        "status": "Fixed hardcoded path bug",
+        "version": "1.0.2",
+        "status": "Running on Azure App Service",
         "endpoints": {
             "health": "/api/health",
             "upload_predict": "/api/audio/upload",
             "predict_file": "/api/predict/file",
-            "batch_predict": "/api/batch/predict",
-            "model_info": "/api/model/info"
         },
         "supported_formats": list(ALLOWED_EXTENSIONS),
-        "max_file_size": "16MB",
-        "features": [
-            "Audio file upload and prediction",
-            "File path prediction",
-            "Batch file prediction",
-            "Model health checking",
-            "Real-time predictions"
-        ]
+        "max_file_size": "16MB"
     }), 200
 
 @app.errorhandler(413)
@@ -253,17 +167,7 @@ def not_found(e):
 def internal_error(e):
     return jsonify({'error': 'Internal server error'}), 500
 
+# This is the key part for Azure App Service
 if __name__ == "__main__":
-    print("🚀 Starting TB Cough Detection API...")
-    print(f"📁 Upload folder: {UPLOAD_FOLDER}")
-    print(f"🎵 Supported formats: {ALLOWED_EXTENSIONS}")
-    
-    # Test model loading on startup
-    test_detector = get_detector()
-    if test_detector and test_detector.model is not None:
-        print("✅ Model loaded successfully - API ready!")
-    else:
-        print("❌ Warning: Model failed to load. Check if model files exist.")
-        print("   Make sure you've run the training script first.")
-    
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    # Development mode
+    app.run(debug=False, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
