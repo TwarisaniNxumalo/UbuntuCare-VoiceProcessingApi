@@ -1,40 +1,40 @@
 # Core Machine Learning & Data Processing
-numpy==1.24.3
-pandas==2.0.3
-scikit-learn==1.3.0
+numpy
+pandas
+scikit-learn
 
 # Deep Learning
-tensorflow==2.13.0
+tensorflow
 
 # Audio Processing
-librosa==0.10.1
-soundfile==0.12.1
+librosa
+soundfile
 
 # Data Visualization
-matplotlib==3.7.2
-seaborn==0.12.2
+matplotlib
+seaborn
 
 # Model Persistence
-joblib==1.3.2
+joblib
 
 # Web Framework & API
-Flask==2.3.3
-Werkzeug==2.3.7
+Flask
+Werkzeug
 
 # Audio Format Support (additional codecs)
-ffmpeg-python==0.2.0
+ffmpeg-python
 
 # Optional: For better audio file support
-pydub==0.25.1
+pydub
 
 # Development & Utilities
-tqdm==4.66.1
+tqdm
 
 # Audio dependencies (librosa dependencies)
-numba==0.57.1
-scipy==1.11.2
-resampy==0.4.2
-audioread==3.0.0
+numba
+scipy
+resampy
+audioread
 
 # Additional Flask utilities (if needed for production)
-flask-cors==4.0.0
+flask-cors
